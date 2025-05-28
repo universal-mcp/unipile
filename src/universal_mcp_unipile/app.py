@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, Optional, Callable
+from typing import Any, Dict, Optional, Callable, Literal
 from loguru import logger
 
 from universal_mcp.applications.application import APIApplication
@@ -187,7 +187,7 @@ class UnipileApp(APIApplication):
             # Note: The structure of 'attachments' and handling of 'mentions' should be
             # confirmed with Unipile's specific LinkedIn API documentation.
 
-        response = self._post(url, json=payload)
+        response = self._post(url, data=payload)
         return response.json()
 
     def retrieve_chat(
@@ -453,8 +453,8 @@ class UnipileApp(APIApplication):
         self,
         account_id: str,
         text: str,
-        visibility: Optional[str] = None,  # e.g., "PUBLIC", "CONNECTIONS"
-        media_urns: Optional[list[str]] = None,  # List of LinkedIn media URNs
+        # visibility: Optional[str] = None,  # e.g., "PUBLIC", "CONNECTIONS"
+        # media_urns: Optional[list[str]] = None,  # List of LinkedIn media URNs
     ) -> dict[str, Any]:
         """
         Creates a new post on LinkedIn.
@@ -479,19 +479,16 @@ class UnipileApp(APIApplication):
             linkedin, post, create, share, content, api, important
         """
         url = f"{self.base_url}/api/v1/posts"
-        # Assuming account_id is needed for context, passed as a query parameter.
-        params: dict[str, Any] = {"account_id": account_id}
+        params: dict[str, str] = {"account_id": account_id}
+        if text:
+            params["text"] = text
 
-        payload: dict[str, Any] = {"text": text}
-        if visibility:
-            payload["visibility"] = visibility
-        if media_urns:
-            # LinkedIn's URN-based media attachment often requires a specific structure.
-            # This is a common way, but verify with Unipile's documentation.
-            payload["media"] = [{"media": urn, "category": "ARTICLE"} for urn in media_urns]
-            # Category could be ARTICLE, IMAGE, VIDEO, etc. Assuming ARTICLE for generic URNs.
+        # if visibility:
+        #     params["visibility"] = visibility
+        # if media_urns:
+        #     params["media"] = [{"media": urn, "category": "ARTICLE"} for urn in media_urns]
 
-        response = self._post(url, params=params, json=payload)
+        response = self._post(url, data=params)
         return response.json()
 
     def list_post_reactions(
@@ -537,9 +534,7 @@ class UnipileApp(APIApplication):
         self,
         post_social_id: str,
         account_id: str,
-        text: Optional[str] = None,  # Text of the comment (as query param per spec)
-        # OpenAPI spec is unclear on body for this POST if text is in query.
-        # Assuming mentions or other complex objects might go in body.
+        text: str ,  # Text of the comment (as query param per spec)
         mentions_body: Optional[list[dict[str, Any]]] = None
     ) -> dict[str, Any]:
         """
@@ -566,15 +561,14 @@ class UnipileApp(APIApplication):
             linkedin, post, comment, create, content, api, important
         """
         url = f"{self.base_url}/api/v1/posts/{post_social_id}/comments"
-        params: dict[str, Any] = {"account_id": account_id}
+        params: dict[str, str] = {"account_id": account_id}
         if text:
             params["text"] = text
 
-        payload: Optional[dict[str, Any]] = None
         if mentions_body: # If you need to send structured mentions in the body
-            payload = {"mentions": mentions_body} # Field name 'mentions' is an assumption
+            params = {"mentions": mentions_body} # Field name 'mentions' is an assumption
 
-        response = self._post(url, params=params, json=payload) # json=None is handled by _post
+        response = self._post(url, data=params) # json=None is handled by _post
 
         if response.content: # Check if there's content to parse
             try:
@@ -589,7 +583,7 @@ class UnipileApp(APIApplication):
         self,
         post_social_id: str,  # This will go into the request body
         reaction_type: str,   # This will go into the request body
-        account_id: Optional[str] = None  # Account to perform the request from (query param)
+        account_id: str  # Account to perform the request from (query param)
     ) -> dict[str, Any]:
         """
         Adds a reaction to a post or comment.
@@ -613,18 +607,14 @@ class UnipileApp(APIApplication):
             linkedin, post, reaction, create, like, content, api, important
         """
         url = f"{self.base_url}/api/v1/posts/reaction"
-        params: dict[str, Any] = {}
-        if account_id:
-            params["account_id"] = account_id
-
-        # Based on GET /reactions response, 'post_id' (URN/Social ID) and 'value' (reaction type)
-        # are likely field names in the request body.
-        payload: dict[str, Any] = {
+        
+        params: dict[str, str] = {
+            "account_id": account_id,  # Account to perform the request fro
             "post_id": post_social_id,
-            "value": reaction_type
+            "reaction_type": reaction_type
         }
 
-        response = self._post(url, params=params, json=payload)
+        response = self._post(url, data=params)
         if response.content: # Check if there's content to parse
             try:
                 return response.json()
