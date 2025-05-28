@@ -453,21 +453,22 @@ class UnipileApp(APIApplication):
         self,
         account_id: str,
         text: str,
-        # visibility: Optional[str] = None,  # e.g., "PUBLIC", "CONNECTIONS"
-        # media_urns: Optional[list[str]] = None,  # List of LinkedIn media URNs
+        mentions: Optional[list[dict[str, Any]]] = None,
+        external_link: Optional[str] = None, 
     ) -> dict[str, Any]:
         """
         Creates a new post on LinkedIn.
         The OpenAPI spec does not detail the request body nor 'account_id' as a query param for this POST.
         This method assumes 'account_id' as a query parameter for authoring context,
-        and a JSON body with 'text', optional 'visibility', and 'media' (constructed from media_urns).
+        and a JSON body with 'text', optional 'attachments', 'mentions', and 'external_link'.
         Please verify the correct request structure with official Unipile LinkedIn API documentation.
 
         Args:
             account_id: The ID of the Unipile account that will author the post (added as query parameter).
             text: The main text content of the post.
-            visibility: The visibility of the post (e.g., "PUBLIC", "CONNECTIONS").
-            media_urns: Optional list of LinkedIn URNs for media to be attached.
+            mentions: Optional list of dictionaries, each representing a mention.
+                      Example: `[{"entity_urn": "urn:li:person:...", "start_index": 0, "end_index": 5}]`
+            external_link: Optional string, an external URL that should be displayed within a card.
 
         Returns:
             A dictionary containing the ID of the created post.
@@ -479,24 +480,26 @@ class UnipileApp(APIApplication):
             linkedin, post, create, share, content, api, important
         """
         url = f"{self.base_url}/api/v1/posts"
-        params: dict[str, str] = {"account_id": account_id}
-        if text:
-            params["text"] = text
+        
+        params: dict[str, str] = {
+            "account_id": account_id,
+            "text": text,
+        }
 
-        # if visibility:
-        #     params["visibility"] = visibility
-        # if media_urns:
-        #     params["media"] = [{"media": urn, "category": "ARTICLE"} for urn in media_urns]
+        if mentions:
+            params["mentions"] = mentions
+        if external_link:
+            params["external_link"] = external_link
 
         response = self._post(url, data=params)
         return response.json()
 
     def list_post_reactions(
         self,
-        post_id: str,     # Social ID of the post
-        account_id: str,  # Account to perform the request from (REQUIRED)
+        post_id: str,    
+        account_id: str, 
         cursor: Optional[str] = None,
-        limit: Optional[int] = None,  # 1-100
+        limit: Optional[int] = None, 
         comment_id: Optional[str] = None,  # To get reactions from a specific comment
     ) -> dict[str, Any]:
         """
