@@ -154,11 +154,6 @@ class UnipileApp(APIApplication):
         self,
         chat_id: str,
         text: str,
-        # OpenAPI spec doesn't define request body. Assuming common fields.
-        # Verify with official Unipile LinkedIn API docs.
-        attachments: Optional[list[dict[str, Any]]] = None,
-        # Example attachments: [{"id": "urn:li:media:...", "type": "image/jpeg"}]
-        # Example mentions: [{"urn": "urn:li:person:...", "name": "John Doe"}]
     ) -> dict[str, Any]:
         """
         Sends a message in a specific chat.
@@ -182,10 +177,6 @@ class UnipileApp(APIApplication):
         """
         url = f"{self.base_url}/api/v1/chats/{chat_id}/messages"
         payload: dict[str, Any] = {"text": text}
-        if attachments:
-            payload["attachments"] = attachments
-            # Note: The structure of 'attachments' and handling of 'mentions' should be
-            # confirmed with Unipile's specific LinkedIn API documentation.
 
         response = self._post(url, data=payload)
         return response.json()
@@ -193,7 +184,7 @@ class UnipileApp(APIApplication):
     def retrieve_chat(
         self,
         chat_id: str,
-        account_id: Optional[str] = None  # Mandatory if chat_id is a provider ID
+        account_id: Optional[str] = None 
     ) -> dict[str, Any]:
         """
         Retrieves a specific chat by its Unipile or provider ID.
