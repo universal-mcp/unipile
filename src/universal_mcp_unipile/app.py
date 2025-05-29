@@ -22,9 +22,7 @@ class UnipileApp(APIApplication):
                          `{"headers": {"x-api-key": "YOUR_API_KEY"}}`.
         """
         super().__init__(name="unipile", integration=integration)
-        # The base_url should ideally come from the integration object or a central configuration.
-        # Setting a default Unipile API base URL.
-        self.base_url = "https://api4.unipile.com:13494"
+        self.base_url = "https://api4.unipile.com:13494" # Use get_credentials() to get port and subdomain in future
 
     def _get_headers(self) -> Dict[str, str]:
         """
@@ -352,7 +350,7 @@ class UnipileApp(APIApplication):
 
     def retrieve_own_profile(
         self,
-        account_id: str,  # Account to trigger the request from (REQUIRED)
+        account_id: str,
     ) -> dict[str, Any]:
         """
         Retrieves the profile of the user associated with the given Unipile account_id.
@@ -377,7 +375,7 @@ class UnipileApp(APIApplication):
     def retrieve_post(
         self,
         post_id: str,
-        account_id: str,  # Account to perform the request from (REQUIRED)
+        account_id: str, 
     ) -> dict[str, Any]:
         """
         Retrieves a specific post by its ID.
@@ -402,11 +400,11 @@ class UnipileApp(APIApplication):
 
     def list_post_comments(
         self,
-        post_id: str,     # Social ID of the post
-        account_id: str,  # Account to perform the request from (REQUIRED)
+        post_id: str,  
+        account_id: str,  
+        comment_id: Optional[str] = None, 
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
-        comment_id: Optional[str] = None,  # To get replies from a specific comment
     ) -> dict[str, Any]:
         """
         Lists all comments from a specific post. Can also list replies to a specific comment.
@@ -414,9 +412,9 @@ class UnipileApp(APIApplication):
         Args:
             post_id: The social ID of the post.
             account_id: The ID of the Unipile account to perform the request from (REQUIRED).
+            comment_id: If provided, retrieves replies to this comment ID instead of top-level comments.
             cursor: Pagination cursor.
             limit: Number of comments to return. (OpenAPI spec shows type string, passed as string if provided).
-            comment_id: If provided, retrieves replies to this comment ID instead of top-level comments.
 
         Returns:
             A dictionary containing a list of comment objects and pagination details.
@@ -432,7 +430,6 @@ class UnipileApp(APIApplication):
         if cursor:
             params["cursor"] = cursor
         if limit is not None:
-            # OpenAPI spec for this endpoint's limit is type: string.
             params["limit"] = str(limit)
         if comment_id:
             params["comment_id"] = comment_id
@@ -488,20 +485,20 @@ class UnipileApp(APIApplication):
     def list_post_reactions(
         self,
         post_id: str,    
-        account_id: str, 
-        cursor: Optional[str] = None,
-        limit: Optional[int] = None, 
+        account_id: str,
         comment_id: Optional[str] = None,  # To get reactions from a specific comment
+        cursor: Optional[str] = None,
+        limit: Optional[int] = None,
     ) -> dict[str, Any]:
         """
         Lists all reactions from a specific post or comment.
 
         Args:
             post_id: The social ID of the post.
-            account_id: The ID of the Unipile account to perform the request from (REQUIRED).
+            account_id: The ID of the Unipile account to perform the request from .
+            comment_id: If provided, retrieves reactions for this comment ID.
             cursor: Pagination cursor.
             limit: Number of reactions to return (1-100, spec max 250).
-            comment_id: If provided, retrieves reactions for this comment ID.
 
         Returns:
             A dictionary containing a list of reaction objects and pagination details.
@@ -528,7 +525,8 @@ class UnipileApp(APIApplication):
         self,
         post_social_id: str,
         account_id: str,
-        text: str ,  # Text of the comment (as query param per spec)
+        text: str , 
+        comment_id: Optional[str] = None,  # If provided, replies to a specific comment
         mentions_body: Optional[list[dict[str, Any]]] = None
     ) -> dict[str, Any]:
         """
@@ -543,6 +541,7 @@ class UnipileApp(APIApplication):
             account_id: The ID of the Unipile account performing the comment.
             text: The text content of the comment (passed as a query parameter).
                   Supports Unipile's mention syntax like "Hey {{0}}".
+            comment_id: Optional ID of a specific comment to reply to instead of commenting on the post.
             mentions_body: Optional list of mention objects for the request body if needed.
 
         Returns:
@@ -555,29 +554,31 @@ class UnipileApp(APIApplication):
             linkedin, post, comment, create, content, api, important
         """
         url = f"{self.base_url}/api/v1/posts/{post_social_id}/comments"
-        params: dict[str, str] = {"account_id": account_id}
-        if text:
-            params["text"] = text
+        params: dict[str, Any] = {
+            "account_id": account_id,  # Account to perform the request from
+            "text": text,  # Text of the comment
+        }
+            
+        if comment_id:
+            params["comment_id"] = comment_id
 
         if mentions_body: # If you need to send structured mentions in the body
             params = {"mentions": mentions_body} # Field name 'mentions' is an assumption
 
         response = self._post(url, data=params) # json=None is handled by _post
 
-        if response.content: # Check if there's content to parse
-            try:
-                return response.json()
-            except json.JSONDecodeError:
-                # Handle cases where response might be 201/204 with no parsable JSON body
-                return {"status": response.status_code, "message": "Comment action processed."}
-        return {"status": response.status_code, "message": "Comment action processed, no content in response."}
-
+        try:
+            return response.json()
+        except json.JSONDecodeError:
+            # Handle cases where response might be 201/204 with no parsable JSON body
+            return {"status": response.status_code, "message": "Comment action processed."}
 
     def add_reaction_to_post(
         self,
         post_social_id: str,  # This will go into the request body
-        reaction_type: str,   # This will go into the request body
-        account_id: str  # Account to perform the request from (query param)
+        reaction_type: Literal["like", "celebrate", "love", "insightful", "funny", "support"],   # This will go into the request body
+        account_id: str,  # Account to perform the request from (query param)
+        comment_id: Optional[str] = None  # If provided, reacts to a specific comment instead of the post
     ) -> dict[str, Any]:
         """
         Adds a reaction to a post or comment.
@@ -588,8 +589,9 @@ class UnipileApp(APIApplication):
 
         Args:
             post_social_id: The social ID of the post or comment to react to.
-            reaction_type: The type of reaction (e.g., "LIKE", "PRAISE").
-            account_id: Optional ID of the Unipile account performing the reaction.
+            reaction_type: The type of reaction .
+            account_id: Account ID of the Unipile account performing the reaction.
+            comment_id: Optional ID of a specific comment to react to instead of the post.
 
         Returns:
             A dictionary, likely confirming the reaction. (Structure depends on actual API response)
@@ -607,14 +609,16 @@ class UnipileApp(APIApplication):
             "post_id": post_social_id,
             "reaction_type": reaction_type
         }
-
+        
+        if comment_id:
+            params["comment_id"] = comment_id
+            
         response = self._post(url, data=params)
-        if response.content: # Check if there's content to parse
-            try:
-                return response.json()
-            except json.JSONDecodeError:
-                return {"status": response.status_code, "message": "Reaction action processed."}
-        return {"status": response.status_code, "message": "Reaction action processed, no content in response."}
+
+        try:
+            return response.json()
+        except json.JSONDecodeError:
+            return {"status": response.status_code, "message": "Reaction action processed."}
 
     def list_tools(self) -> list[Callable]:
         """
