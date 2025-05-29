@@ -81,7 +81,7 @@ class UnipileApp(APIApplication):
             httpx.HTTPError: If the API request fails.
 
         Tags:
-            linkedin, chat, list, messaging, api, important
+            linkedin, chat, list, messaging, api
         """
         url = f"{self.base_url}/api/v1/chats"
         params: dict[str, Any] = {}
@@ -130,7 +130,7 @@ class UnipileApp(APIApplication):
             httpx.HTTPError: If the API request fails.
 
         Tags:
-            linkedin, chat, message, list, messaging, api, important
+            linkedin, chat, message, list, messaging, api
         """
         url = f"{self.base_url}/api/v1/chats/{chat_id}/messages"
         params: dict[str, Any] = {}
@@ -171,7 +171,7 @@ class UnipileApp(APIApplication):
             httpx.HTTPError: If the API request fails.
 
         Tags:
-            linkedin, chat, message, send, create, messaging, api, important
+            linkedin, chat, message, send, create, messaging, api
         """
         url = f"{self.base_url}/api/v1/chats/{chat_id}/messages"
         payload: dict[str, Any] = {"text": text}
@@ -274,7 +274,7 @@ class UnipileApp(APIApplication):
             httpx.HTTPError: If the API request fails.
 
         Tags:
-            linkedin, account, list, unipile, api
+            linkedin, account, list, unipile, api, important
         """
         url = f"{self.base_url}/api/v1/accounts"
         params: dict[str, Any] = {}
@@ -303,7 +303,7 @@ class UnipileApp(APIApplication):
             httpx.HTTPError: If the API request fails.
 
         Tags:
-            linkedin, account, retrieve, get, unipile, api
+            linkedin, account, retrieve, get, unipile, api, important
         """
         url = f"{self.base_url}/api/v1/accounts/{account_id}"
         response = self._get(url)
@@ -334,7 +334,7 @@ class UnipileApp(APIApplication):
             httpx.HTTPError: If the API request fails.
 
         Tags:
-            linkedin, post, list, user_posts, company_posts, content, api, important
+            linkedin, post, list, user_posts, company_posts, content, api
         """
         url = f"{self.base_url}/api/v1/users/{identifier}/posts"
         params: dict[str, Any] = {"account_id": account_id}
@@ -365,7 +365,7 @@ class UnipileApp(APIApplication):
             httpx.HTTPError: If the API request fails.
 
         Tags:
-            linkedin, user, profile, me, retrieve, get, api, important
+            linkedin, user, profile, me, retrieve, get, api
         """
         url = f"{self.base_url}/api/v1/users/me"
         params: dict[str, Any] = {"account_id": account_id}
@@ -391,7 +391,7 @@ class UnipileApp(APIApplication):
             httpx.HTTPError: If the API request fails.
 
         Tags:
-            linkedin, post, retrieve, get, content, api
+            linkedin, post, retrieve, get, content, api, important
         """
         url = f"{self.base_url}/api/v1/posts/{post_id}"
         params: dict[str, Any] = {"account_id": account_id}
@@ -423,7 +423,7 @@ class UnipileApp(APIApplication):
             httpx.HTTPError: If the API request fails.
 
         Tags:
-            linkedin, post, comment, list, content, api, important
+            linkedin, post, comment, list, content, api
         """
         url = f"{self.base_url}/api/v1/posts/{post_id}/comments"
         params: dict[str, Any] = {"account_id": account_id}
