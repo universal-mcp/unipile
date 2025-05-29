@@ -22,8 +22,38 @@ class UnipileApp(APIApplication):
                          `{"headers": {"x-api-key": "YOUR_API_KEY"}}`.
         """
         super().__init__(name="unipile", integration=integration)
-        self.base_url = "https://api4.unipile.com:13494" # Use get_credentials() to get port and subdomain in future
+        
+        self._base_url = None # Use get_credentials() to get port and subdomain in future
+        
+    @property
+    def base_url(self) -> str:
+        """
+        Get the base URL for the Unipile API.
+        This is constructed from the integration's credentials.
+        """
+        if not self._base_url:
+            credentials = self.integration.get_credentials()
+            subdomain = credentials.get("subdomain")
+            port = credentials.get("port")
+            if not subdomain or not port:
+                logger.error("UnipileApp: Missing 'subdomain' or 'port' in integration credentials.")
+                raise ValueError("Integration credentials must include 'subdomain' and 'port'.")
+            self._base_url = f"https://{subdomain}.unipile.com:{port}"
+        return self._base_url
+    
+    @base_url.setter
+    def base_url(self, base_url: str) -> None:
+        """
+        Set the base URL for the Unipile API.
+        This is useful for testing or if the base URL changes.
 
+        Args:
+            base_url: The new base URL to set.
+        """
+        self._base_url = base_url
+        logger.info(f"UnipileApp: Base URL set to {self._base_url}")
+
+    
     def _get_headers(self) -> Dict[str, str]:
         """
         Get the headers for Apollo API requests.
