@@ -24,3 +24,4 @@ This is automatically generated from OpenAPI schema for the UnipileApp API.
 | `list_post_reactions` | Lists all reactions from a specific post or comment. |
 | `create_post_comment` | Adds a comment to a specific post. |
 | `add_reaction_to_post` | Adds a reaction to a post or comment. |
+| `search_posts` | Performs a search for posts on LinkedIn based on a variety of criteria. |

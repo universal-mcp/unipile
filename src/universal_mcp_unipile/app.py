@@ -23,7 +23,7 @@ class UnipileApp(APIApplication):
         """
         super().__init__(name="unipile", integration=integration)
         
-        self._base_url = None # Use get_credentials() to get port and subdomain in future
+        self._base_url = None
         
     @property
     def base_url(self) -> str:
@@ -185,9 +185,6 @@ class UnipileApp(APIApplication):
     ) -> dict[str, Any]:
         """
         Sends a message in a specific chat.
-        The OpenAPI specification for this endpoint does not detail the request body.
-        This method assumes a JSON body with 'text' and optional 'attachments'.
-        Please verify the correct request body structure from the official Unipile LinkedIn API documentation.
 
         Args:
             chat_id: The ID of the chat where the message will be sent.
@@ -476,10 +473,6 @@ class UnipileApp(APIApplication):
     ) -> dict[str, Any]:
         """
         Creates a new post on LinkedIn.
-        The OpenAPI spec does not detail the request body nor 'account_id' as a query param for this POST.
-        This method assumes 'account_id' as a query parameter for authoring context,
-        and a JSON body with 'text', optional 'attachments', 'mentions', and 'external_link'.
-        Please verify the correct request structure with official Unipile LinkedIn API documentation.
 
         Args:
             account_id: The ID of the Unipile account that will author the post (added as query parameter).
@@ -516,7 +509,7 @@ class UnipileApp(APIApplication):
         self,
         post_id: str,    
         account_id: str,
-        comment_id: Optional[str] = None,  # To get reactions from a specific comment
+        comment_id: Optional[str] = None,
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
     ) -> dict[str, Any]:
@@ -561,10 +554,6 @@ class UnipileApp(APIApplication):
     ) -> dict[str, Any]:
         """
         Adds a comment to a specific post.
-        'text' is passed as a query parameter as per OpenAPI spec.
-        'mentions_body' can be used for structured mentions in the request body.
-        The exact response for this POST is not defined in the provided OpenAPI snippet.
-        Verify request/response structure with official Unipile LinkedIn API documentation.
 
         Args:
             post_social_id: The social ID of the post to comment on.
@@ -585,30 +574,29 @@ class UnipileApp(APIApplication):
         """
         url = f"{self.base_url}/api/v1/posts/{post_social_id}/comments"
         params: dict[str, Any] = {
-            "account_id": account_id,  # Account to perform the request from
-            "text": text,  # Text of the comment
+            "account_id": account_id, 
+            "text": text, 
         }
             
         if comment_id:
             params["comment_id"] = comment_id
 
-        if mentions_body: # If you need to send structured mentions in the body
-            params = {"mentions": mentions_body} # Field name 'mentions' is an assumption
+        if mentions_body:
+            params = {"mentions": mentions_body} 
 
-        response = self._post(url, data=params) # json=None is handled by _post
+        response = self._post(url, data=params) 
 
         try:
             return response.json()
         except json.JSONDecodeError:
-            # Handle cases where response might be 201/204 with no parsable JSON body
             return {"status": response.status_code, "message": "Comment action processed."}
 
     def add_reaction_to_post(
         self,
-        post_social_id: str,  # This will go into the request body
-        reaction_type: Literal["like", "celebrate", "love", "insightful", "funny", "support"],   # This will go into the request body
-        account_id: str,  # Account to perform the request from (query param)
-        comment_id: Optional[str] = None  # If provided, reacts to a specific comment instead of the post
+        post_social_id: str,  
+        reaction_type: Literal["like", "celebrate", "love", "insightful", "funny", "support"],   
+        account_id: str, 
+        comment_id: Optional[str] = None  
     ) -> dict[str, Any]:
         """
         Adds a reaction to a post or comment.
@@ -635,7 +623,7 @@ class UnipileApp(APIApplication):
         url = f"{self.base_url}/api/v1/posts/reaction"
         
         params: dict[str, str] = {
-            "account_id": account_id,  # Account to perform the request fro
+            "account_id": account_id,
             "post_id": post_social_id,
             "reaction_type": reaction_type
         }
@@ -650,10 +638,76 @@ class UnipileApp(APIApplication):
         except json.JSONDecodeError:
             return {"status": response.status_code, "message": "Reaction action processed."}
 
+    def search_posts(
+        self,
+        account_id: str,
+        cursor: Optional[str] = None,
+        limit: Optional[int] = None,
+        keywords: Optional[str] = None,
+        sort_by: Optional[Literal["relevance", "date"]] = None,
+        date_posted: Optional[Literal["past_day", "past_week", "past_month"]] = None,
+        content_type: Optional[Literal["videos", "images", "live_videos", "collaborative_articles", "documents"]] = None,
+        posted_by: Optional[Dict[str, Any]] = None,
+        mentioning: Optional[Dict[str, Any]] = None,
+        author: Optional[Dict[str, Any]] = None,
+    ) -> dict[str, Any]:
+        """
+        Performs a search for posts on LinkedIn based on a variety of criteria.
+
+        Args:
+            account_id: The ID of the Unipile account to perform the search from (REQUIRED).
+            cursor: Pagination cursor for the next page of entries.
+            limit: Number of items to return (up to 50 for Classic search).
+            keywords: Keywords to search for in the post.
+            sort_by: How to sort the results, e.g., "relevance" or "date".
+            date_posted: Filter posts by when they were posted.
+            content_type: Filter by the type of content in the post.
+            posted_by: Dictionary to filter by who posted (e.g., {"me": True}, {"member": ["MEMBER_ID"]}).
+            mentioning: Dictionary to filter by who is mentioned (e.g., {"company": ["COMPANY_ID"]}).
+            author: Dictionary to filter by author details (e.g., {"industry": ["INDUSTRY_ID"]}).
+
+        Returns:
+            A dictionary containing a list of post objects and pagination details.
+
+        Raises:
+            httpx.HTTPError: If the API request fails.
+
+        Tags:
+            linkedin, post, search, find, content, api, important
+        """
+        url = f"{self.base_url}/api/v1/linkedin/search"
+        
+        params: dict[str, Any] = {"account_id": account_id}
+        if cursor:
+            params["cursor"] = cursor
+        if limit is not None:
+            params["limit"] = limit
+            
+        payload: dict[str, Any] = {
+            "api": "classic",
+            "category": "posts"
+        }
+        
+        if keywords:
+            payload["keywords"] = keywords
+        if sort_by:
+            payload["sort_by"] = sort_by
+        if date_posted:
+            payload["date_posted"] = date_posted
+        if content_type:
+            payload["content_type"] = content_type
+        if posted_by:
+            payload["posted_by"] = posted_by
+        if mentioning:
+            payload["mentioning"] = mentioning
+        if author:
+            payload["author"] = author
+
+        response = self._post(url, params=params, data=payload)
+        return self._handle_response(response)
+
     def list_tools(self) -> list[Callable]:
-        """
-        Lists all available tools (public methods) for the LinkedinApp.
-        """
+        
         return [
             self.list_all_chats,
             self.list_chat_messages,
@@ -670,4 +724,5 @@ class UnipileApp(APIApplication):
             self.list_post_reactions,
             self.create_post_comment,
             self.add_reaction_to_post,
+            self.search_posts
         ]
