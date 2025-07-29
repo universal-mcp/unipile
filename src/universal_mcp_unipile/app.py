@@ -638,9 +638,11 @@ class UnipileApp(APIApplication):
         except json.JSONDecodeError:
             return {"status": response.status_code, "message": "Reaction action processed."}
 
-    def search_posts(
+    def search(
         self,
         account_id: str,
+        category: Literal["people", "companies", "posts", "jobs"] = "posts",
+        api: Literal["classic", "sales_navigator"] = "classic",
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
         keywords: Optional[str] = None,
@@ -650,30 +652,56 @@ class UnipileApp(APIApplication):
         posted_by: Optional[Dict[str, Any]] = None,
         mentioning: Optional[Dict[str, Any]] = None,
         author: Optional[Dict[str, Any]] = None,
+        # People search specific parameters
+        location: Optional[list[str]] = None,
+        industry: Optional[list[str]] = None,
+        company: Optional[list[str]] = None,
+        past_company: Optional[list[str]] = None,
+        school: Optional[list[str]] = None,
+        # Company search specific parameters
+        headcount: Optional[list[dict[str, int]]] = None,
+        # Job search specific parameters
+        job_type: Optional[list[str]] = None,
+        minimum_salary: Optional[dict[str, Any]] = None,
+        # URL search
+        search_url: Optional[str] = None,
     ) -> dict[str, Any]:
         """
-        Performs a search for posts on LinkedIn based on a variety of criteria.
+        Performs a comprehensive search on LinkedIn for people, companies, posts, or jobs.
 
         Args:
             account_id: The ID of the Unipile account to perform the search from (REQUIRED).
+            category: Type of search to perform - "people", "companies", "posts", or "jobs".
+            api: Which LinkedIn API to use - "classic" or "sales_navigator".
             cursor: Pagination cursor for the next page of entries.
             limit: Number of items to return (up to 50 for Classic search).
-            keywords: Keywords to search for in the post.
+            keywords: Keywords to search for.
             sort_by: How to sort the results, e.g., "relevance" or "date".
-            date_posted: Filter posts by when they were posted.
-            content_type: Filter by the type of content in the post.
-            posted_by: Dictionary to filter by who posted (e.g., {"me": True}, {"member": ["MEMBER_ID"]}).
-            mentioning: Dictionary to filter by who is mentioned (e.g., {"company": ["COMPANY_ID"]}).
-            author: Dictionary to filter by author details (e.g., {"industry": ["INDUSTRY_ID"]}).
+            date_posted: Filter posts by when they were posted (posts only).
+            content_type: Filter by the type of content in the post (posts only).
+            posted_by: Dictionary to filter by who posted (posts only).
+            location: Location filter for people/company search (array of strings).
+            industry: Industry filter for people/company search (array of strings).
+            company: Company filter for people search (array of strings).
+            past_company: Past company filter for people search (array of strings).
+            school: School filter for people search (array of strings).
+            headcount: Company size filter for company search (array of objects with min/max numbers).
+            job_type: Job type filter for job search (array of strings).
+            minimum_salary: Minimum salary filter for job search (object with currency and value). Example: 
+                minimum_salary = {
+                    "currency": "USD",
+                    "value": 80
+                }
+            search_url: Direct LinkedIn search URL to use instead of building parameters.
 
         Returns:
-            A dictionary containing a list of post objects and pagination details.
+            A dictionary containing search results and pagination details.
 
         Raises:
             httpx.HTTPError: If the API request fails.
 
         Tags:
-            linkedin, post, search, find, content, api, important
+            linkedin, search, people, companies, posts, jobs, api, important
         """
         url = f"{self.base_url}/api/v1/linkedin/search"
         
@@ -684,24 +712,49 @@ class UnipileApp(APIApplication):
             params["limit"] = limit
             
         payload: dict[str, Any] = {
-            "api": "classic",
-            "category": "posts"
+            "api": api,
+            "category": category
         }
         
-        if keywords:
-            payload["keywords"] = keywords
-        if sort_by:
-            payload["sort_by"] = sort_by
-        if date_posted:
-            payload["date_posted"] = date_posted
-        if content_type:
-            payload["content_type"] = content_type
-        if posted_by:
-            payload["posted_by"] = posted_by
-        if mentioning:
-            payload["mentioning"] = mentioning
-        if author:
-            payload["author"] = author
+        # Add search URL if provided (takes precedence over other parameters)
+        if search_url:
+            payload["search_url"] = search_url
+        else:
+            # Add common parameters
+            common_params = {
+                "keywords": keywords,
+                "sort_by": sort_by,
+            }
+            payload.update({k: v for k, v in common_params.items() if v is not None})
+            
+            # Category-specific parameters
+            category_params = {
+                "posts": {
+                    "date_posted": date_posted,
+                    "content_type": content_type,
+                    "posted_by": posted_by,
+                },
+                "people": {
+                    "location": location,
+                    "industry": industry,
+                    "company": company,
+                    "past_company": past_company,
+                    "school": school,
+                },
+                "companies": {
+                    "location": location,
+                    "industry": industry,
+                    "headcount": headcount,
+                },
+                "jobs": {
+                    "location": location,
+                    "job_type": job_type,
+                    "minimum_salary": minimum_salary,
+                }
+            }
+            
+            if category in category_params:
+                payload.update({k: v for k, v in category_params[category].items() if v is not None})
 
         response = self._post(url, params=params, data=payload)
         return self._handle_response(response)
@@ -724,5 +777,5 @@ class UnipileApp(APIApplication):
             self.list_post_reactions,
             self.create_post_comment,
             self.add_reaction_to_post,
-            self.search_posts
+            self.search
         ]
