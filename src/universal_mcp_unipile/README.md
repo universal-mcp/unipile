@@ -18,6 +18,7 @@ This is automatically generated from OpenAPI schema for the UnipileApp API.
 | `retrieve_account` | Retrieves a specific linked account by its ID. |
 | `list_user_posts` | Lists all posts for a given user or company identifier. |
 | `retrieve_own_profile` | Retrieves the profile of the user associated with the given Unipile account_id. |
+| `retrieve_profile` | Retrieves a specific user profile by its identifier. |
 | `retrieve_post` | Retrieves a specific post by its ID. |
 | `list_post_comments` | Lists all comments from a specific post. Can also list replies to a specific comment. |
 | `create_post` | Creates a new post on LinkedIn. |
