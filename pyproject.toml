@@ -4,12 +4,16 @@ build-backend = "hatchling.build"
 
 [project]
 name = "universal-mcp-unipile"
-version = "0.1.6"
+version = "0.1.10"
 description = "A Universal MCP Application: universal_mcp_unipile"
 readme = "README.md"
 requires-python = ">=3.11"
 classifiers = [ "Programming Language :: Python :: 3", "Programming Language :: Python :: 3.11", "License :: OSI Approved :: MIT License", "Operating System :: OS Independent",]
-dependencies = [ "universal_mcp>=0.1.22",]
+dependencies = [
+ "langchain-openai>=0.3.28",
+ "langgraph>=0.6.0",
+ "universal_mcp>=0.1.23",
+]
 [[project.authors]]
 name = "Manoj Bajaj"
 email = "manoj@agentr.dev"
