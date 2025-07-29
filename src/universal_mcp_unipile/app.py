@@ -56,11 +56,11 @@ class UnipileApp(APIApplication):
     
     def _get_headers(self) -> Dict[str, str]:
         """
-        Get the headers for Apollo API requests.
+        Get the headers for Unipile API requests.
         Overrides the base class method to use X-Api-Key.
         """
         if not self.integration:
-            logger.warning("ApolloApp: No integration configured, returning empty headers.")
+            logger.warning("UnipileApp: No integration configured, returning empty headers.")
             return {}
         
         credentials = self.integration.get_credentials()
@@ -68,13 +68,13 @@ class UnipileApp(APIApplication):
         api_key = credentials.get("api_key") or credentials.get("API_KEY") or credentials.get("apiKey")
         
         if not api_key:
-            logger.error("ApolloApp: API key not found in integration credentials for Apollo.")
-            return { # Or return minimal headers if some calls might not need auth (unlikely for Apollo)
+            logger.error("UnipileApp: API key not found in integration credentials for Unipile.")
+            return { # Or return minimal headers if some calls might not need auth (unlikely for Unipile)
                 "Content-Type": "application/json",
                 "Cache-Control": "no-cache"
             }
 
-        logger.debug("ApolloApp: Using X-Api-Key for authentication.")
+        logger.debug("UnipileApp: Using X-Api-Key for authentication.")
         return {
             "x-api-key": api_key,
             "Content-Type": "application/json",
@@ -361,7 +361,7 @@ class UnipileApp(APIApplication):
             httpx.HTTPError: If the API request fails.
 
         Tags:
-            linkedin, post, list, user_posts, company_posts, content, api
+            linkedin, post, list, user_posts, company_posts, content, api, important
         """
         url = f"{self.base_url}/api/v1/users/{identifier}/posts"
         params: dict[str, Any] = {"account_id": account_id}
@@ -450,7 +450,7 @@ class UnipileApp(APIApplication):
             httpx.HTTPError: If the API request fails.
 
         Tags:
-            linkedin, post, comment, list, content, api
+            linkedin, post, comment, list, content, api, important
         """
         url = f"{self.base_url}/api/v1/posts/{post_id}/comments"
         params: dict[str, Any] = {"account_id": account_id}
@@ -759,6 +759,33 @@ class UnipileApp(APIApplication):
         response = self._post(url, params=params, data=payload)
         return self._handle_response(response)
 
+    def retrieve_profile(
+        self,
+        identifier: str,
+        account_id: str,
+    ) -> dict[str, Any]:
+        """
+        Retrieves a specific user profile by its identifier.
+
+        Args:
+            identifier: Can be the provider's internal id OR the provider's public id of the requested user.For example, for https://www.linkedin.com/in/manojbajaj95/, the identifier is "manojbajaj95".
+                
+            account_id: The ID of the Unipile account to perform the request from (REQUIRED).
+
+        Returns:
+            A dictionary containing the user's profile details.
+
+        Raises:
+            httpx.HTTPError: If the API request fails.
+
+        Tags:
+            linkedin, user, profile, retrieve, get, api, important
+        """
+        url = f"{self.base_url}/api/v1/users/{identifier}"
+        params: dict[str, Any] = {"account_id": account_id}
+        response = self._get(url, params=params)
+        return self._handle_response(response)
+    
     def list_tools(self) -> list[Callable]:
         
         return [
@@ -771,6 +798,7 @@ class UnipileApp(APIApplication):
             self.retrieve_account,
             self.list_user_posts,
             self.retrieve_own_profile,
+            self.retrieve_profile,
             self.retrieve_post,
             self.list_post_comments,
             self.create_post,
